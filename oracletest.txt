@@ -1,0 +1,187 @@
+test단답형 - SQL용어(명령어)
+
+(1) DML, DDL 구문 개념 및 문법
+    1) DML, DDL 차이
+
+		DML			DDL
+명칭		데이터 조작어		데이터 정의어
+작업 단위 	행(row)			객체(object)
+		insert			create
+		update			alter(테이블 구조 변경)
+		delete			drop
+		Merge			truncate(테이블 내용 비우기)
+		RollBack 가능		Rollback 불가능
+		저장공간 반납불가	저장공간 반납가능
+
+    2) DML 구문 : Data Manipulation Language
+	가. Insert
+		INSERT INTO 테이블명 VALUES(값); -> 테이블 컬럼 순서대로 값 입력
+		INSERT INTO 테이블명(컬럼명) VALUES(값);
+		INSERT INTO 테이블명(컬럼명) SELECT 구문(쿼리); -> 테이블에 있는 값 일괄 insert
+
+	나. Update 구문
+		UPDATE 테이블명 SET 컬럼명1 = 값1
+		UPDATE 테이블명 SET 컬럼명 = (스칼라 서브쿼리);
+	다. Delete
+		DELETE FROM 테이블명 WHERE 조건
+		DELETE FROM 테이블명 WHERE 컬럼명 = (스칼라 서브쿼리);
+	라. Merge : update, insert 가 합쳐진 구문 -> 테이블을 병합할 경우 사용
+		MERGE INTO 테이블명 USING ( table | view | sub_query ) alias
+		ON (join 조건) 
+		WHEN MATCHED THEN 	UPDATE SET col1 = col1_val, col2 = col2_val
+		WHEN NOT MATCHED THEN 	INSERT (column_list) VALUES (column_values);
+
+    3) DDL 구문 : Data Definition Language
+	가. TRUNCATE : 데이터 비우기
+		TRUNCATE TABLE 테이블명;
+	나. CREATE : 생성
+	    - 테이블 생성 구문	
+		CREATE TABLE 테이블명 (컬럼명 데이터타입 [DEFAULT 디폴트 값][, ...]);
+		CREATE TABLE 테이블명 AS 서브쿼리(select절) : 존재하는 테이블에서 데이터를 가져와서 생성
+	다. ALTER
+		ALTER TABLE 테이블명 	[ READ ONLY | READ WRITE ]
+					[ ADD | MODIFY | DROP ]
+	    - 테이블 사용 가능 여부 설정
+		ALTER TABLE 테이블명 [ RE`AD ONLY | READ WRITE ]
+	
+	    - 테이블 컬럼 수정
+		ALTER TABLE 테이블명 ADD (컬럼명 데이터타입 [DEFAULT 기본값]) : 컬럼추가
+		ALTER TABLE 테이블명 MODIFY (컬럼명 데이터타입 [DEFAULT 기본값]) : 컬럼수정
+		ALTER TABLE 테이블명 DROP (컬럼명) : 컬럼 삭제
+	4) DROP
+	    - 테이블 삭제
+		DROP TABLE 테이블명;
+		DROP TABLE 테이블명 PURGE; : 휴지통에 담지 않고 완전 삭제
+
+(2) Group by 절과 Having 절을 사용한 쿼리 구문
+    가. Select 구문
+	select 컬럼명 from 테이블명
+	where 조건절 
+	group by 그룹절
+	having 해빙절
+	order by {asc,[desc]} 정렬
+
+
+(3) Self-join절을 사용한 쿼리구문
+    가. self join : 테이블이 자기 자신의 칼럼끼리 조인하는 유형
+	SELECT worker.last_name emp, manager.last_name mgr
+	FROM employees worker 
+	   JOIN employees manager
+	   ON (worker.manager_id = manager.employee_id);
+
+(4) 트렌젝션 제어 명령어(COMMIT, ROLLBACK, SAVEPOINT)
+    가. DCL 구문 : Transaction Control Language
+	1) ROLLBACK / SAVEPOINT : 작업 취소 명령어(transaction의 처음으로 되돌리는 명령어)
+		ROLLBACK to SAVEPOINT 위치1
+		SAVEPOINT 위치1
+		ROLLBACK : 위치 지정이 없는 경우 (auto)commit 이후 실행된 DML 구문까지 Rollback
+	2) COMMIT : transaction 종료(영구저장)
+		cf. 모든 DDL/DCL 명령어는 AutoCommit이 동시 실행
+
+(5) user 생성 및 패스워드 변경
+    CREATE USER 유저명 IDENTIFIED BY 페스워드;   유저 생성
+    ALTER USER 유저명 IDENTIFIED BY 비밀번호;    비밀번호 변경
+    DROP USER 유저명				 유저 삭제
+
+(6) Top-N 분석을 사용한 쿼리 구문
+	SELECT 컬럼, ROWNUM FROM (조건절 테이블)
+	WHERE ROWNUM <= N;
+
+	select * from (
+		select ROWNUM as RANK, employee_id, last_name, 
+			salary, department_id, department_name
+		from (select employee_id, last_name, salary, departments.department_id, departments.department_name
+			from employees join departments 
+			on employee.department_id=departments.department_id)
+		order by salary desc)
+	where RANK >=10 and RANK <= 20
+	order by RANK
+
+(7) 테이블 생성 및 제약조건 정의
+    1. 문법
+	1) 컬럼 레벨 문법
+		테이블 생성시 컬럼명 옆에 조건 설정
+		CREATE TABLE 테이블명 ( 컬럼명 [CONSTRAINT 조건명] 조건타입,....);
+	2) 테이블 레벨 문법
+		테이블 생성시 컬럼 정의 후 마지막에 조건 설정
+		CREATE TABLE 테이블명 (	column,...(컬럼생성) [CONSTRAINT 조건명] 조건타입 (컬럼명, ...),
+    2. 종류
+	1) PRIMARY KEY   2) NOT NULL 3) UNIQUE 	
+	4) FOREIGN KEY : 다른 조건과 달리 테이블레벨의 문법만 사용 가능
+		[CONSTRAINT 조건명] 조건타입(컬럼명) ,REFERENCES 참조할 테이블명(참조할컬럼명)
+	5) CHECK : 조건을 설정하고 조건에 해당하는 값만 허용
+		CONSTRAINT 제약조건명 CHECK (조건식)
+		ex> ..., salary NUMBER(2) CONSTRAINT emp_salary_min CHECK (salary > 0),...	
+
+    3. 예제
+	CREATE TABLE employees( 
+		employee_id NUMBER(6) 	CONSTRAINT emp_employee_id PRIMARY KEY, 
+		first_name VARCHAR2(20), 
+		last_name VARCHAR2(25)  CONSTRAINT emp_last_name_nn NOT NULL, 
+		email VARCHAR2(25) 	CONSTRAINT emp_email_nn NOT NULL 
+					CONSTRAINT emp_email_uk UNIQUE , 
+		phone_number VARCHAR2(20), 
+		hire_date DATE		CONSTRAINT emp_hire_date_nn NOT NULL, 
+		job_id VARCHAR2(10)	CONSTRAINT emp_job_nn NOT NULL, 
+		salary NUMBER(8,2)	CONSTRAINT emp_salary_ck CHECK (salary>0), 
+		commission_pct NUMBER(2,2), 
+		manager_id NUMBER(6),
+		department_id NUMBER(4), 
+
+		CONSTRAINT emp_manager_fk FOREIGN KEY (manager_id)	REFERENCES employees (employee_id), 
+		CONSTRAINT emp_dept_fk 	  FOREIGN KEY (department_id)	REFERENCES departments (department_id)    );
+
+
+(8) 시퀀스 생성 및 사용
+    가. 시퀀스 생성
+	CREATE SEQUENCE 시퀀스이름
+	[INCREMENT BY 숫자]
+	[START WITH 숫자]
+	[MAXVALUE 숫자 or NOMAXVALUE]
+	[MINVALUE 숫자 or NOMINVALUE]
+	[CYCLE or NOCYCLE]
+	[CACHE or NOCACHE];
+
+    나. insert 문에서 시퀀스 호출하기>
+	insert into test(num, name, reg_date) values (num_seq.NEXTVAL, 'john', sysdate);
+	num_seq : 시퀀스명
+	currval : 현재 시퀀스 값을 반환
+	nextval : 현재 시퀀스값의 다음 값을 반환
+
+    다. 시퀀스 수정 / 삭제
+	alter sequence 시퀀스명 increment by 2;
+	drop sequence 시퀀스명;
+
+(9) 인덱스 자동 생성 및 수동 생성
+    - 인덱스 생성 구문 
+	CREATE TABLE 테이블명 (
+		컬럼명 타입 PRIMARY KEY USING INDEX (
+			CREATE INDEX 인덱스제약조건명 ON 테이블명(컬럼명).....); -> 기본키 생성시 인덱스도 제약조건명 설정
+		CREATE INDEX 제약조건명 ON 테이블명(함수(컬럼명)); 함수와 함께 자주 사용되는 경우 함수와 함께 인덱스 설정
+	DROP index명
+	cf. Unique, Primary Key의 경우 인덱스 자동 생성. 
+
+
+(10) 테이블 삭제 및 휴지통으로 부터 되돌리기
+	select * from recyclebin : 휴지통 검색
+	FLASHBACK table 테이블명 to BEFORE DROP : 휴지통에 있는 테이블 살리는 명령어
+
+(11) System 권한 및 Object권한 부여와 회수
+    가. 문법
+	GRANT 권한명 [ ON (테이블명 | 뷰명 | 시퀀스명) | ALzL ] TO { 유저명 | 롤명 | PUBLIC } [with grant option]
+	GRANT 권한명 TO 권한받을 userID; : 유저에게 권한 부여
+	GRANT 권한명 TO ROLE명 : ROLE에 권한을 부여
+	GRANT ROLE명 TO USER명 : USER에게 ROLE의 권한을 한번에 부여
+
+	REVOKE 권한명 [ ON (테이블명 | 뷰명 | 시퀀스명) ] FROM { 유저명 | 롤명 | PUBLIC } [CASCADE CONSTRAINTS ( 종속된 제약 까지 일괄 삭제 )];  
+    나. 권한 종류
+	시스템 권한
+	  -  CREATE SESSION : 데이터 베이스를 연결할 수 있는 권한
+	  -  CREATE ROLE : 오라클 데이터베이스 역할을 생성할 수 있는 권한
+	  -  CREATE VIEW : 뷰의 생성 권한
+	  -  ALTER USER : 생성한 사용자의 정의를 변경할 수 있는 권한
+	  -  DROP USER : 생성한 사용자를 삭제시키는 권한
+	오브젝트 권한
+	  - select, insert, update, delete, alter,index,execute,references 등
+
+(12) 테이블 생성 관련 실기시험->오픈북
