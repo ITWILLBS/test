@@ -1,4 +1,4 @@
-test단답형 - SQL용어(명령어)
+test2단답형 - SQL용어(명령어)
 
 (1) DML, DDL 구문 개념 및 문법
     1) DML, DDL 차이
